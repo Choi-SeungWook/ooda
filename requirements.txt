@@ -1,0 +1,10 @@
+# 로컬(노트북)과 실습장 Docker 공통 의존성.
+# torch 는 Docker 기반 이미지(pytorch/pytorch)에 이미 들어 있으므로 여기서 제외한다.
+# 로컬에서 RL을 시험할 때만 별도로 CPU용 torch 를 설치한다 (README 참고).
+numpy==1.26.4
+pandas==2.2.2
+matplotlib==3.8.4
+gymnasium==0.29.1
+stable-baselines3==2.3.2
+statsmodels==0.14.2
+tqdm==4.66.4

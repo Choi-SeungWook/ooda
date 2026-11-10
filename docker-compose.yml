@@ -1,0 +1,19 @@
+# 사용 예 (실습장 PC):
+#   docker compose build
+#   docker compose run --rm ooda                                   # GPU/torch 확인
+#   docker compose run --rm ooda python scripts/pilot.py --workers 16
+# 결과 파일은 호스트의 ./results 폴더에 저장된다.
+services:
+  ooda:
+    build: .
+    image: ooda-rl:latest
+    volumes:
+      - ./results:/workspace/results
+    shm_size: "4gb"          # 멀티프로세싱(병렬 환경) 공유메모리 여유
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

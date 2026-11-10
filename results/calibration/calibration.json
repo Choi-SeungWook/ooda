@@ -1,0 +1,150 @@
+{
+  "n_per_type": 2500,
+  "T": 100,
+  "calib_table": {
+    "3/4": {
+      "avoid": 0.658,
+      "deceive": 0.722,
+      "rush": 0.6832,
+      "mixture": 0.6877
+    },
+    "4/5": {
+      "avoid": 0.6076,
+      "deceive": 0.6876,
+      "rush": 0.6372,
+      "mixture": 0.6441
+    },
+    "5/6": {
+      "avoid": 0.5516,
+      "deceive": 0.664,
+      "rush": 0.6,
+      "mixture": 0.6052
+    },
+    "6/7": {
+      "avoid": 0.5008,
+      "deceive": 0.6296,
+      "rush": 0.564,
+      "mixture": 0.5648
+    },
+    "7/8": {
+      "avoid": 0.4296,
+      "deceive": 0.604,
+      "rush": 0.5344,
+      "mixture": 0.5227
+    },
+    "22/25": {
+      "avoid": 0.412,
+      "deceive": 0.5904,
+      "rush": 0.5232,
+      "mixture": 0.5085
+    },
+    "15/17": {
+      "avoid": 0.402,
+      "deceive": 0.5836,
+      "rush": 0.5204,
+      "mixture": 0.502
+    },
+    "8/9": {
+      "avoid": 0.3652,
+      "deceive": 0.566,
+      "rush": 0.5104,
+      "mixture": 0.4805
+    },
+    "9/10": {
+      "avoid": 0.3008,
+      "deceive": 0.5248,
+      "rush": 0.4852,
+      "mixture": 0.4369
+    },
+    "10/11": {
+      "avoid": 0.2536,
+      "deceive": 0.5032,
+      "rush": 0.4692,
+      "mixture": 0.4087
+    },
+    "11/12": {
+      "avoid": 0.2128,
+      "deceive": 0.4712,
+      "rush": 0.452,
+      "mixture": 0.3787
+    },
+    "19/20": {
+      "avoid": 0.09,
+      "deceive": 0.2792,
+      "rush": 0.3664,
+      "mixture": 0.2452
+    }
+  },
+  "common_speed": {
+    "speed": "15/17",
+    "valid_mixture": {
+      "win": 0.4991,
+      "ci95": [
+        0.4878,
+        0.5104
+      ],
+      "pass": true
+    },
+    "valid_per_type": {
+      "rush": {
+        "win": 0.5164,
+        "ci95": [
+          0.4968,
+          0.5359
+        ],
+        "pass": true
+      },
+      "avoid": {
+        "win": 0.3924,
+        "ci95": [
+          0.3734,
+          0.4117
+        ],
+        "pass": false
+      },
+      "deceive": {
+        "win": 0.5884,
+        "ci95": [
+          0.569,
+          0.6075
+        ],
+        "pass": false
+      }
+    }
+  },
+  "per_type_speed": {
+    "rush": {
+      "speed": "8/9",
+      "valid": {
+        "win": 0.5016,
+        "ci95": [
+          0.482,
+          0.5212
+        ],
+        "pass": true
+      }
+    },
+    "avoid": {
+      "speed": "6/7",
+      "valid": {
+        "win": 0.484,
+        "ci95": [
+          0.4644,
+          0.5036
+        ],
+        "pass": true
+      }
+    },
+    "deceive": {
+      "speed": "10/11",
+      "valid": {
+        "win": 0.5076,
+        "ci95": [
+          0.488,
+          0.5272
+        ],
+        "pass": true
+      }
+    }
+  }
+}

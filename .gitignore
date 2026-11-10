@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# 대용량·재생성 가능한 결과 (그림·json·txt 요약은 커밋)
+results/**/*.csv
+results/**/*.zip
+results/**/models/
+results/**/tb/
+
+# OS / 편집기
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
