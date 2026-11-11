@@ -21,8 +21,13 @@ class EnvConfig:
     pursuer_view: int | None = None  # 추격자 시야만 따로 지정 (None 이면 view_radius 와 같음)
     # 도망자 이동 속도 비율 (15/17 = 17스텝 중 15번 이동, 결정은 매 스텝).
     # 속도가 같으면 추격자 1명은 원리적으로 잡을 수 없으므로(격자의 cop number = 2) 비대칭을 둔다.
-    # 값은 기준선 보정(scripts/calibrate.py)으로 결정: FSM(k=1) 균등혼합 승률 50%.
-    evader_speed: float = 15 / 17
+    # 값은 기준선 보정(scripts/calibrate.py)으로 결정: FSM(k=1) 균등혼합 승률 50% (검증 49.7%).
+    # 유형별 승률은 맞추지 않고 그대로 둔다: 돌진형 0.57 > 회피형 0.48 > 기만형 0.44 (능력 계층의 조작 점검)
+    evader_speed: float = 6 / 7
+    # 기만체 (기만형 도망자만): 추격자와의 경로거리가 이 값 이하가 되면 식별되어 사라진다 (1 = 인접 확인).
+    # 2 이상이면 기만 효과가 거의 사라짐 (scripts/exploration/e6_deception.py)
+    decoy_ident_dist: int = 1
+    decoy_row_band: int = 2        # 기만체 출발 행: 가짜 출구의 행 ±2 (열은 도망자와 같은 왼쪽 띠)
 
 
 EVADER_TYPES = ("rush", "avoid", "deceive")   # 돌진형, 회피형, 기만형
@@ -32,7 +37,7 @@ EVADER_TYPES = ("rush", "avoid", "deceive")   # 돌진형, 회피형, 기만형
 FSM_PATROL_COL = 6
 
 # 강건성 점검용: 유형별로 FSM(k=1) 승률 50%가 되도록 보정한 도망자 속도 (scripts/calibrate.py)
-PER_TYPE_SPEED = {"rush": 8 / 9, "avoid": 6 / 7, "deceive": 10 / 11}
+PER_TYPE_SPEED = {"rush": 8 / 9, "avoid": 6 / 7, "deceive": 5 / 6}
 
 # seed 구간: 실험 단계마다 겹치지 않게 분리 (보정에 쓴 판을 평가에 재사용하는 과적합 방지)
 SEED_BASE = {
@@ -40,6 +45,7 @@ SEED_BASE = {
     "pilot": 1_000_000,     # 파일럿·설계 탐색
     "calib": 2_000_000,     # T 보정
     "valid": 3_000_000,     # T 보정 검증
-    "train": 10_000_000,    # 강화학습 훈련
+    "train": 10_000_000,    # 강화학습 훈련 (10,000,000 ~ 19,999,999 에서 무작위)
+    "rl_valid": 20_000_000, # 강화학습 학습 중 검증 (최고 모델 선택용, 평가 seed 와 분리)
 }
 EVADER_NAMES_KO = {"rush": "돌진형", "avoid": "회피형", "deceive": "기만형"}

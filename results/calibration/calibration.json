@@ -4,109 +4,121 @@
   "calib_table": {
     "3/4": {
       "avoid": 0.658,
-      "deceive": 0.722,
+      "deceive": 0.6036,
       "rush": 0.6832,
-      "mixture": 0.6877
+      "mixture": 0.6483
     },
     "4/5": {
       "avoid": 0.6076,
-      "deceive": 0.6876,
+      "deceive": 0.5504,
       "rush": 0.6372,
-      "mixture": 0.6441
+      "mixture": 0.5984
     },
     "5/6": {
       "avoid": 0.5516,
-      "deceive": 0.664,
+      "deceive": 0.498,
       "rush": 0.6,
-      "mixture": 0.6052
+      "mixture": 0.5499
+    },
+    "17/20": {
+      "avoid": 0.5164,
+      "deceive": 0.4624,
+      "rush": 0.5752,
+      "mixture": 0.518
+    },
+    "11/13": {
+      "avoid": 0.5264,
+      "deceive": 0.4684,
+      "rush": 0.5796,
+      "mixture": 0.5248
     },
     "6/7": {
       "avoid": 0.5008,
-      "deceive": 0.6296,
+      "deceive": 0.45,
       "rush": 0.564,
-      "mixture": 0.5648
+      "mixture": 0.5049
     },
     "7/8": {
       "avoid": 0.4296,
-      "deceive": 0.604,
+      "deceive": 0.3868,
       "rush": 0.5344,
-      "mixture": 0.5227
+      "mixture": 0.4503
     },
     "22/25": {
       "avoid": 0.412,
-      "deceive": 0.5904,
+      "deceive": 0.3656,
       "rush": 0.5232,
-      "mixture": 0.5085
+      "mixture": 0.4336
     },
     "15/17": {
       "avoid": 0.402,
-      "deceive": 0.5836,
+      "deceive": 0.3596,
       "rush": 0.5204,
-      "mixture": 0.502
+      "mixture": 0.4273
     },
     "8/9": {
       "avoid": 0.3652,
-      "deceive": 0.566,
+      "deceive": 0.3264,
       "rush": 0.5104,
-      "mixture": 0.4805
+      "mixture": 0.4007
     },
     "9/10": {
       "avoid": 0.3008,
-      "deceive": 0.5248,
+      "deceive": 0.268,
       "rush": 0.4852,
-      "mixture": 0.4369
+      "mixture": 0.3513
     },
     "10/11": {
       "avoid": 0.2536,
-      "deceive": 0.5032,
+      "deceive": 0.2216,
       "rush": 0.4692,
-      "mixture": 0.4087
+      "mixture": 0.3148
     },
     "11/12": {
       "avoid": 0.2128,
-      "deceive": 0.4712,
+      "deceive": 0.1852,
       "rush": 0.452,
-      "mixture": 0.3787
+      "mixture": 0.2833
     },
     "19/20": {
       "avoid": 0.09,
-      "deceive": 0.2792,
+      "deceive": 0.0824,
       "rush": 0.3664,
-      "mixture": 0.2452
+      "mixture": 0.1796
     }
   },
   "common_speed": {
-    "speed": "15/17",
+    "speed": "6/7",
     "valid_mixture": {
-      "win": 0.4991,
+      "win": 0.4973,
       "ci95": [
-        0.4878,
-        0.5104
+        0.486,
+        0.5086
       ],
       "pass": true
     },
     "valid_per_type": {
       "rush": {
-        "win": 0.5164,
+        "win": 0.57,
         "ci95": [
-          0.4968,
-          0.5359
-        ],
-        "pass": true
-      },
-      "avoid": {
-        "win": 0.3924,
-        "ci95": [
-          0.3734,
-          0.4117
+          0.5505,
+          0.5893
         ],
         "pass": false
       },
-      "deceive": {
-        "win": 0.5884,
+      "avoid": {
+        "win": 0.484,
         "ci95": [
-          0.569,
-          0.6075
+          0.4644,
+          0.5036
+        ],
+        "pass": true
+      },
+      "deceive": {
+        "win": 0.438,
+        "ci95": [
+          0.4187,
+          0.4575
         ],
         "pass": false
       }
@@ -136,12 +148,12 @@
       }
     },
     "deceive": {
-      "speed": "10/11",
+      "speed": "5/6",
       "valid": {
-        "win": 0.5076,
+        "win": 0.4948,
         "ci95": [
-          0.488,
-          0.5272
+          0.4752,
+          0.5144
         ],
         "pass": true
       }

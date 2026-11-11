@@ -31,7 +31,7 @@ from ooda.config import EVADER_NAMES_KO, EVADER_TYPES, SEED_BASE, EnvConfig  # n
 from ooda.plotting import plt, setup_korean_font  # noqa: E402
 from ooda.runner import run_episode  # noqa: E402
 
-SPEEDS = ["3/4", "4/5", "5/6", "6/7", "7/8", "22/25", "15/17", "8/9", "9/10", "10/11", "11/12", "19/20"]
+SPEEDS = ["3/4", "4/5", "5/6", "17/20", "11/13", "6/7", "7/8", "22/25", "15/17", "8/9", "9/10", "10/11", "11/12", "19/20"]
 
 
 def wilson(p: float, n: int, z: float = 1.96) -> tuple[float, float]:

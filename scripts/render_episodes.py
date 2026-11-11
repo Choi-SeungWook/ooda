@@ -25,8 +25,12 @@ def draw(ax, ep):
         r, c = m.rc(e)
         color = "#1a9850" if e == ep["real_exit"] else "#fdae61"
         ax.add_patch(plt.Rectangle((c - .5, r - .5), 1, 1, color=color, alpha=.8))
-    ps = [m.rc(p) for p, _, _ in ep["traj"]]
-    es = [m.rc(e) for _, e, _ in ep["traj"]]
+    ps = [m.rc(p) for p, _, _, _ in ep["traj"]]
+    es = [m.rc(e) for _, e, _, _ in ep["traj"]]
+    ds = [m.rc(d) for _, _, _, d in ep["traj"] if d is not None]
+    if ds:   # 기만체 궤적 (보라 점선, X = 소멸 지점)
+        ax.plot([c for _, c in ds], [r for r, _ in ds], "--", color="#7b3294", lw=1.5, label="기만체")
+        ax.plot(ds[-1][1], ds[-1][0], "x", color="#7b3294", ms=8)
     ax.plot([c for _, c in ps], [r for r, _ in ps], "-", color="#d73027", lw=2, label="추격자")
     ax.plot([c for _, c in es], [r for r, _ in es], "-", color="#4575b4", lw=2, label="도망자")
     ax.plot(ps[0][1], ps[0][0], "o", color="#d73027", ms=8)
@@ -50,7 +54,7 @@ def main():
             ep = run_episode(args.seed0 + j, et, k, record=True)
             draw(axes[i][j], ep)
     axes[0][0].legend(loc="lower left", fontsize=7)
-    fig.suptitle(f"FSM 추격자 vs 도망자 3종 (k={args.k}) — 초록: 진짜 출구, 주황: 가짜 출구, ●시작 X끝")
+    fig.suptitle(f"FSM 추격자 vs 도망자 3종 (k={args.k}) — 초록: 진짜 출구, 주황: 가짜 출구, 보라 점선: 기만체, ●시작 X끝")
     fig.tight_layout()
     out = os.path.join("results", "render")
     os.makedirs(out, exist_ok=True)

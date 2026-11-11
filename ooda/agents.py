@@ -1,4 +1,6 @@
-"""규칙 기반 에이전트: 도망자 3종(돌진형·회피형·기만형)과 FSM 추격자(탐색·추격·차단).
+"""규칙 기반 에이전트: 도망자 3종(돌진형·회피형·기만형), 기만체, FSM 추격자(탐색·추격·차단).
+
+도망자 유형은 능력 계층이다: 돌진형(무반응) → 회피형(반응) → 기만형(반응 + 기만체).
 
 모든 에이전트는 같은 인터페이스를 가진다.
   reset(...)  : 에피소드 시작 시 1회 호출 (알고 있는 정보와 난수 생성기를 받음)
@@ -76,9 +78,12 @@ class AvoidEvader(EvaderBase):
         return self.m.greedy_action(obs.pos, F + cost, self.rng)
 
 
-class DeceiveEvader(EvaderBase):
-    """기만형: 추격자에게 보이는 동안(최근 3스텝 이내 목격)은 가짜 출구로 향하는 척하고,
-    시야에서 벗어나면 진짜 출구로 방향을 바꾼다. 추격자가 2칸 이내면 도주."""
+class FeintEvader(EvaderBase):
+    """[폐기된 기만형 v1, scripts/exploration/e1~e5 재현용] 기만형: 추격자에게 보이는 동안(최근 3스텝 이내 목격)은 가짜 출구로 향하는 척하고,
+    시야에서 벗어나면 진짜 출구로 방향을 바꾼다. 추격자가 2칸 이내면 도주.
+
+    폐기 이유: 더 빠른 추격자에게 보이는 동안 방향을 트는 기만은 접촉을 끊지 못해 오히려 잘 잡힌다
+    (k=1 승률 0.58, 세 유형 중 가장 쉬움). 근거는 docs/02 결정 10, e6_deception.py."""
     memory = 3
     flee_dist = 2
 
@@ -109,7 +114,19 @@ class DeceiveEvader(EvaderBase):
         return int(cands[self.rng.integers(len(cands))])
 
 
+class DeceiveEvader(AvoidEvader):
+    """기만형: 진짜 도망자는 회피형과 똑같이 행동하고, 기만체(Decoy) 1개를 함께 운용한다.
+    기만체의 배치·소멸·식별은 환경(env.py)이 처리하고, 기만체의 이동은 Decoy 가 정한다."""
+    uses_decoy = True
+
+
+class Decoy(RushEvader):
+    """기만체: 가짜 출구로 최단경로 직진, 추격자를 무시 (reset 의 real_exit 자리에 가짜 출구를 넘긴다).
+    속도는 도망자와 같다(runner 가 같은 이동 빈도를 적용)."""
+
+
 EVADERS = {"rush": RushEvader, "avoid": AvoidEvader, "deceive": DeceiveEvader}
+LEGACY_EVADERS = {"feint": FeintEvader}   # 설계 탐색 재현 전용
 
 
 # ===========================================================================
@@ -124,6 +141,12 @@ class FSMPursuer:
                     내가 먼저(또는 동시에) 도착할 수 있는 가장 가까운 지점으로 이동
 
     목표 출구 추정: 도망자를 볼 때마다 각 출구까지의 거리가 얼마나 줄었는지(진척도)를 누적.
+
+    기만체 대응 (추격자는 접촉이 진짜인지 기만체인지 모른다)
+    - 관측되는 접촉이 둘이면 가까운 쪽을 도망자로 본다 (환경이 고름, 동점은 무작위).
+    - 기만체 식별 사건을 받으면, 섞였을 수 있는 정보(출구 추정·마지막 목격 위치)를 모두 버린다.
+    - 직전 목격 위치에서 지난 스텝 수 안에 도달할 수 없는 곳에 접촉이 보이면(물리적으로 불가능한 이동)
+      다른 개체로 보고 출구 추정을 초기화한다. 접촉이 하나뿐인 판에서는 절대 일어나지 않는다.
     """
     close_chase = 2      # 이 거리 이하로 붙으면 차단 대신 직접 추격
     score_decay = 0.8    # 진척도 누적 시 과거 정보 감쇠 (방향 전환을 따라가기 위함)
@@ -155,6 +178,8 @@ class FSMPursuer:
         self.scores = np.zeros(len(self.exits))
         self.n_sightings = 0
         self.prev_seen: int | None = None
+        self.prev_seen_t = 0
+        self.decoy_known = False
         self.last_seen: int | None = None
         self.last_seen_checked = True
         self.patrol_visited: set[int] = set()
@@ -162,11 +187,23 @@ class FSMPursuer:
         self.mode = "search"
 
     # ---------- 판단 보조 ----------
-    def _update_belief(self, ev: int) -> None:
+    def _reset_belief(self) -> None:
+        self.scores[:] = 0
+        self.n_sightings = 0
+        self.prev_seen = None
+
+    def _forget(self) -> None:
+        """기만체 식별 시: 출구 추정과 마지막 목격 위치를 모두 버린다."""
+        self._reset_belief()
+        self.last_seen, self.last_seen_checked = None, True
+
+    def _update_belief(self, ev: int, t: int) -> None:
+        if self.prev_seen is not None and self.m.dist_from(self.prev_seen)[ev] > t - self.prev_seen_t:
+            self._reset_belief()                  # 물리적으로 불가능한 이동 = 다른 개체
         if self.prev_seen is not None:
             for i, d in enumerate(self.d_ex):
                 self.scores[i] = self.score_decay * self.scores[i] + (d[self.prev_seen] - d[ev])
-        self.prev_seen = ev
+        self.prev_seen, self.prev_seen_t = ev, t
         self.n_sightings += 1
 
     def believed_exit(self) -> int | None:
@@ -212,9 +249,12 @@ class FSMPursuer:
     def act(self, obs: PursuerObs) -> int:
         pos = obs.pos
         target: int | None = None
+        if obs.decoy_id_pos is not None and not self.decoy_known:
+            self.decoy_known = True
+            self._forget()
         if obs.evader_pos is not None:
             ev = obs.evader_pos
-            self._update_belief(ev)
+            self._update_belief(ev, obs.t)
             self.last_seen, self.last_seen_checked = ev, False
             d_me = self.m.dist_from(pos)
             b = self.believed_exit()

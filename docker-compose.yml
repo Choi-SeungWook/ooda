@@ -1,19 +1,42 @@
-# 사용 예 (실습장 PC):
+# 실습장 PC(16 CPU, RTX 2080 x2)용. Docker Compose v2(`docker compose`)와 NVIDIA Container Toolkit 필요.
+#
 #   docker compose build
-#   docker compose run --rm ooda                                   # GPU/torch 확인
-#   docker compose run --rm ooda python scripts/pilot.py --workers 16
-# 결과 파일은 호스트의 ./results 폴더에 저장된다.
+#   docker compose run --rm ooda                       # torch / GPU 인식 확인
+#   docker compose run --rm ooda python scripts/train.py --k 1 --seed 0 --timesteps 20000 --eval-every 10000 --eval-n 20   # 동작 확인
+#   docker compose up -d train                         # 본 학습 30개 + 평가 (백그라운드)
+#   docker compose logs -f train                       # 진행 상황
+#   docker compose run --rm ooda python scripts/evaluate.py --workers 15   # 평가만 다시
+#
+# 결과는 호스트의 ./results 에 저장된다 (컨테이너가 root 로 쓰므로 필요하면 sudo chown -R $USER results).
+
+x-common: &common
+  build: .
+  image: ooda-rl:latest
+  working_dir: /workspace
+  volumes:
+    - ./results:/workspace/results
+    - ./ooda:/workspace/ooda              # 코드 수정 후 재빌드 없이 반영
+    - ./scripts:/workspace/scripts
+    - ./.git:/workspace/.git:ro           # 학습 기록에 커밋 해시를 남기기 위함
+  shm_size: "8gb"                         # 병렬 환경(SubprocVecEnv) 공유메모리 여유
+  init: true                              # Ctrl+C / docker stop 시 자식 프로세스까지 정리
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+
 services:
+  # 대화형 실행용: docker compose run --rm ooda <명령>
   ooda:
-    build: .
-    image: ooda-rl:latest
-    volumes:
-      - ./results:/workspace/results
-    shm_size: "4gb"          # 멀티프로세싱(병렬 환경) 공유메모리 여유
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    <<: *common
+
+  # 본 학습 일괄 실행 (6 k x 5 seed, 실험당 1,000만 스텝). k=1 부터 시작하므로 초반 1~2시간에 학습 여부를 확인할 수 있다. 끝나면 평가까지 한다. 중단 후 다시 up 하면 끝난 실험은 건너뛴다.
+  train:
+    <<: *common
+    command: >
+      python scripts/run_experiments.py --parallel 4 --n-envs 3 --gpus 0,1
+      --timesteps 10000000 --then-eval --eval-workers 15
+    restart: "no"

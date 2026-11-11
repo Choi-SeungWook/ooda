@@ -10,8 +10,13 @@ from dataclasses import replace
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
 
+from ooda import agents  # noqa: E402
 from ooda.agents import FSMPursuer  # noqa: E402
 from ooda.config import EnvConfig  # noqa: E402
+
+# e1~e5 는 폐기된 기만형 v1(FeintEvader)로 수행했다. 당시 수치를 재현하려고 'deceive' 를 v1 로 되돌린다.
+# (이 모듈을 import 하는 탐색 스크립트에만 적용된다. 현재 기만형 = 회피형 + 기만체)
+agents.EVADERS["deceive"] = agents.FeintEvader
 
 OUT = os.path.join(ROOT, "results", "exploration")
 os.makedirs(OUT, exist_ok=True)
