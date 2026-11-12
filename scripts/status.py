@@ -4,7 +4,7 @@
     (옵션) --runs results/rl/runs --timesteps 10000000 --total 30 --parallel 4
 
 각 실험의 progress.csv 마지막 줄(time/total_timesteps, time/fps)로 진행률을 계산한다.
-model_final.zip 이 있으면 완료로 본다. 남은 시간 ≈ 남은 스텝 ÷ (평균 fps × 동시 실험 수).
+model_final.zip 이 있으면 완료, train.log 에 Traceback 이 있으면 실패(진행 0)로 본다. 남은 시간 ≈ 남은 스텝 ÷ (평균 fps × 동시 실험 수).
 아직 시작하지 않은 실험은 0스텝으로 계산하며, 학습 후 이어지는 평가 시간은 포함하지 않는다.
 """
 import argparse
@@ -23,7 +23,7 @@ def main():
     args = ap.parse_args()
     T = args.timesteps
 
-    done_steps, fps_list, n_done = 0, [], 0
+    done_steps, fps_list, n_done, n_failed = 0, [], 0, 0
     for d in sorted(glob.glob(os.path.join(args.runs, "*"))):
         if not os.path.isdir(d):
             continue
@@ -48,9 +48,18 @@ def main():
                     best = f"  검증 최고 {ev['mixture'].max():.3f} (최근 {ev['mixture'].iloc[-1]:.3f})"
             except Exception:
                 pass
+        failed = False
+        log = os.path.join(d, "train.log")
+        if not finished and os.path.exists(log):
+            with open(log, encoding="utf-8", errors="replace") as fh:
+                failed = "Traceback" in fh.read()
         if finished:
             steps, n_done = T, n_done + 1
             state = "완료"
+        elif failed:   # 중단된 실험: 다시 돌리면 처음부터 하므로 진행 0 으로 계산
+            n_failed += 1
+            state = f"실패 ({100 * steps / T:.0f}%에서 중단, 재실행 필요)"
+            steps, fps = 0, 0.0
         elif fps > 0:
             state = f"남은 {(T - steps) / fps / 3600:.1f}시간"
         else:
@@ -61,7 +70,7 @@ def main():
         print(f"{name:<10} {100 * steps / T:5.1f}%  fps {fps:6.0f}  {state}{best}")
 
     rem = args.total * T - done_steps
-    print(f"\n실험 완료 {n_done}/{args.total}개, 전체 스텝 기준 {100 * done_steps / (args.total * T):.1f}%")
+    print(f"\n실험 완료 {n_done}/{args.total}개, 실패 {n_failed}개, 전체 스텝 기준 {100 * done_steps / (args.total * T):.1f}%")
     if fps_list:
         avg = sum(fps_list) / len(fps_list)
         print(f"남은 학습 시간 약 {rem / (avg * args.parallel) / 3600:.1f}시간 "
