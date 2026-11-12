@@ -183,6 +183,13 @@ def generate_map(rng: np.random.Generator, cfg: EnvConfig) -> GridMap:
         # 가장 큰 연결 영역만 남기고 나머지 빈칸은 장애물로 메움 (갇힌 칸 방지)
         main = _largest_component(grid)
         grid[(grid == 0) & ~main] = 1
+        if cfg.layout == "infiltration":
+            # 벽이 지도를 가로막아 가장 큰 연결 영역이 도망자/추격자 시작 열에 닿지 않으면 다시 만든다.
+            # (드물게 발생: 예 seed 10452885 는 왼쪽 열 전체가 막혀 env.reset 이 실패했다.
+            #  정상 지도는 난수 소비가 같으므로 이 검사 전후로 생성 결과가 완전히 같다.)
+            (e0, e1), (p0, p1) = cfg.evader_cols, cfg.pursuer_cols
+            if not ((grid[:, e0:e1 + 1] == 0).any() and (grid[:, p0:p1 + 1] == 0).any()):
+                continue
 
         # 출구 후보: 가장자리의 빈칸 중에서 서로 exit_min_sep 이상 떨어지게 선택
         if cfg.layout == "infiltration":
