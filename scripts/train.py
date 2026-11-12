@@ -8,6 +8,8 @@
 사용 예
   python scripts/train.py --k 1 --seed 0 --timesteps 5000000 --n-envs 4 --device cuda
   python scripts/train.py --k 3/2 --seed 0 --timesteps 20000 --n-envs 2 --eval-every 10000 --eval-n 20   # 동작 확인
+  python scripts/train.py --k 1 --seed 1 --timesteps 20000000 --init-model results/rl/runs/k1_s1/model_final.zip \
+      --out-root results/rl/resume      # 이어서 학습 (예산 파일럿용, 본 실험에는 쓰지 않음)
 결과: results/rl/runs/k{k}_s{seed}/ (model_best.zip, model_final.zip, eval.csv, progress.csv, monitor/, config.json)
 """
 import argparse
@@ -111,6 +113,8 @@ def main():
     ap.add_argument("--shaping-coef", type=float, default=0.5,
                     help="잠재함수 기반 보상 성형 계수 c (0 = 성형 없음, docs/02 결정 13)")
     ap.add_argument("--out-root", default=os.path.join("results", "rl", "runs"))
+    ap.add_argument("--init-model", default=None,
+                    help="이어서 학습할 모델(.zip). 하이퍼파라미터는 저장된 값을 쓰고, --timesteps 는 '추가' 스텝 수")
     args = ap.parse_args()
 
     k = str(Fraction(args.k).limit_denominator(100))
@@ -127,23 +131,33 @@ def main():
 
     # 환경 seed: 학습 seed 와 k 에서 결정 (같은 설정이면 재현 가능)
     env_seed = args.seed * 100_003 + int(Fraction(k) * 1000)
+    if args.init_model:
+        env_seed += 7_919        # 이어서 학습할 때 처음 학습과 같은 판 순서를 반복하지 않도록
     vec_cls = SubprocVecEnv if args.n_envs > 1 else DummyVecEnv
     venv = make_vec_env(PursuitGymEnv, n_envs=args.n_envs, seed=env_seed, vec_env_cls=vec_cls,
                         env_kwargs={"k": k, "cfg": cfg, "shaping_coef": args.shaping_coef, "gamma": args.gamma},
                         monitor_dir=os.path.join(out, "monitor"),
                         monitor_kwargs={"info_keywords": ("win", "evader")})
 
-    model = PPO("MultiInputPolicy", venv, policy_kwargs=POLICY_KWARGS, seed=args.seed, device=args.device,
-                n_steps=args.n_steps, batch_size=args.batch_size, n_epochs=args.n_epochs,
-                learning_rate=args.lr, gamma=args.gamma, gae_lambda=args.gae_lambda,
-                ent_coef=args.ent_coef, clip_range=args.clip, verbose=0)
+    if args.init_model:
+        model = PPO.load(args.init_model, env=venv, device=args.device,
+                         custom_objects={"policy_kwargs": POLICY_KWARGS})
+        model.set_random_seed(args.seed + 7_919)
+    else:
+        model = PPO("MultiInputPolicy", venv, policy_kwargs=POLICY_KWARGS, seed=args.seed, device=args.device,
+                    n_steps=args.n_steps, batch_size=args.batch_size, n_epochs=args.n_epochs,
+                    learning_rate=args.lr, gamma=args.gamma, gae_lambda=args.gae_lambda,
+                    ent_coef=args.ent_coef, clip_range=args.clip, verbose=0)
     model.set_logger(configure(out, ["csv"]))   # 학습 곡선: progress.csv
     print(f"[train] {run_name(k, args.seed)} device={model.device} n_envs={args.n_envs} "
           f"timesteps={args.timesteps:,}", flush=True)
 
     t0 = time.time()
     cb = ValidationCallback(out, k, cfg, args.eval_every, args.eval_n)
-    model.learn(total_timesteps=args.timesteps, callback=cb, progress_bar=False)
+    start = model.num_timesteps                 # 이어서 학습하면 불러온 모델의 누적 스텝 (eval.csv 의 timesteps 도 누적 기준)
+    cb.next_at = (start // args.eval_every + 1) * args.eval_every
+    model.learn(total_timesteps=args.timesteps, callback=cb, progress_bar=False,
+                reset_num_timesteps=args.init_model is None)
     model.save(os.path.join(out, "model_final"))
     venv.close()
 
