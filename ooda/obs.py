@@ -9,6 +9,8 @@
   3 지금 보이는 접촉  4 접촉 궤적(지금까지 본 접촉 위치, 시간이 지나면 흐려짐)
   5 방문 흔적(내가 결정 시점에 있었던 위치, 흐려짐)
   6 현재 시야 범위    7 식별된 기만체 위치(흐려짐)
+  (memory=True 일 때 추가, docs/02 결정 15)
+  8 마지막 접촉 위치(새 접촉을 볼 때까지 유지)   9 장기 접촉 궤적(반감기 약 69스텝)
 스칼라
   경과 시간/T, 마지막 접촉 후 경과/T, 접촉을 본 적 있음, 기만체 식별됨, 지금 보이는 접촉 수/2
 """
@@ -20,18 +22,20 @@ from .config import EnvConfig
 from .env import PursuerObs
 from .gridmap import GridMap
 
-N_CHANNELS = 8
+N_CHANNELS_BASE = 8   # 기억 채널 없는 관측 (결정 15 이전 모델)
+N_CHANNELS = 10       # 기억 채널 포함 (기본)
 N_SCALARS = 5
 TRAIL_DECAY = 0.9     # 접촉 궤적: 스텝마다 곱함 (반감기 약 6.6스텝)
 VISIT_DECAY = 0.98    # 방문 흔적 (반감기 약 34스텝)
 DECOY_DECAY = 0.95    # 식별된 기만체 위치 (반감기 약 13.5스텝)
+LONG_DECAY = 0.99     # 장기 접촉 궤적 (반감기 약 69스텝, 제한시간 100스텝에 걸쳐 이동 방향을 기억)
 
 
 class ObsBuilder:
-    def __init__(self, m: GridMap, cfg: EnvConfig):
-        self.m, self.cfg = m, cfg
+    def __init__(self, m: GridMap, cfg: EnvConfig, memory: bool = True):
+        self.m, self.cfg, self.memory = m, cfg, memory
         H, W = m.H, m.W
-        self.grid = np.zeros((N_CHANNELS, H, W), dtype=np.float32)
+        self.grid = np.zeros((N_CHANNELS if memory else N_CHANNELS_BASE, H, W), dtype=np.float32)
         self.grid[0] = m.grid
         for e in m.exits:
             self.grid[1].flat[e] = 1.0
@@ -48,6 +52,8 @@ class ObsBuilder:
             g[4] *= TRAIL_DECAY ** dt
             g[5] *= VISIT_DECAY ** dt
             g[7] *= DECOY_DECAY ** dt
+            if self.memory:
+                g[9] *= LONG_DECAY ** dt
         g[2] = 0.0
         g[2].flat[obs.pos] = 1.0
         g[5].flat[obs.pos] = 1.0
@@ -57,6 +63,11 @@ class ObsBuilder:
             g[4].flat[c] = 1.0
         if obs.contacts:
             self.last_contact_t = obs.t
+            if self.memory:
+                g[8] = 0.0
+                for c in obs.contacts:
+                    g[8].flat[c] = 1.0
+                    g[9].flat[c] = 1.0
         if obs.decoy_id_pos is not None and not self.decoy_marked:
             self.decoy_marked = True
             g[7].flat[obs.decoy_id_pos] = 1.0

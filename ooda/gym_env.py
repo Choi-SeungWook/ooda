@@ -21,7 +21,7 @@ import numpy as np
 from gymnasium import spaces
 
 from .config import EVADER_TYPES, SEED_BASE, EnvConfig
-from .obs import N_CHANNELS, N_SCALARS, ObsBuilder
+from .obs import N_CHANNELS, N_CHANNELS_BASE, N_SCALARS, ObsBuilder
 from .runner import Episode, is_decision_step
 
 STEP_PENALTY = 0.001
@@ -32,9 +32,11 @@ class PursuitGymEnv(gym.Env):
 
     def __init__(self, k="1", cfg: EnvConfig = EnvConfig(), evader_types=EVADER_TYPES,
                  seed_lo: int = SEED_BASE["train"], seed_hi: int = SEED_BASE["rl_valid"],
-                 fixed_episodes: list | None = None, shaping_coef: float = 0.5, gamma: float = 0.99):
+                 fixed_episodes: list | None = None, shaping_coef: float = 0.5, gamma: float = 0.99,
+                 obs_memory: bool = True):
         """fixed_episodes: [(seed, evader_type), ...] 를 주면 그 순서대로만 진행 (검증용).
-        shaping_coef: 보상 성형 계수 c (0 이면 성형 없음). gamma: 성형용 할인율 (PPO 의 gamma 와 같게)."""
+        shaping_coef: 보상 성형 계수 c (0 이면 성형 없음). gamma: 성형용 할인율 (PPO 의 gamma 와 같게).
+        obs_memory: 관측에 기억 채널(마지막 접촉 위치, 장기 궤적)을 넣을지 (docs/02 결정 15)."""
         super().__init__()
         self.k = Fraction(k).limit_denominator(100)
         self.cfg = cfg
@@ -43,9 +45,10 @@ class PursuitGymEnv(gym.Env):
         self.fixed = fixed_episodes
         self._fixed_i = 0
         self.shaping_coef, self.gamma = shaping_coef, gamma
+        self.obs_memory = obs_memory
         H = W = cfg.size
         self.observation_space = spaces.Dict({
-            "grid": spaces.Box(0.0, 1.0, (N_CHANNELS, H, W), np.float32),
+            "grid": spaces.Box(0.0, 1.0, (N_CHANNELS if obs_memory else N_CHANNELS_BASE, H, W), np.float32),
             "vec": spaces.Box(0.0, 1.0, (N_SCALARS,), np.float32),
         })
         self.action_space = spaces.Discrete(5)
@@ -60,7 +63,7 @@ class PursuitGymEnv(gym.Env):
             ep_seed = int(self.np_random.integers(self.seed_lo, self.seed_hi))
             et = self.evader_types[int(self.np_random.integers(len(self.evader_types)))]
         self.ep = Episode(ep_seed, et, self.cfg)
-        self.builder = ObsBuilder(self.ep.env.map, self.cfg)
+        self.builder = ObsBuilder(self.ep.env.map, self.cfg, memory=self.obs_memory)
         po = self.ep.env.observe_pursuer()
         self.phi = self._potential(po)
         return self.builder.update(po), {"seed": ep_seed, "evader": et}
