@@ -112,6 +112,8 @@ def main():
     ap.add_argument("--clip", type=float, default=0.2)
     ap.add_argument("--shaping-coef", type=float, default=0.5,
                     help="잠재함수 기반 보상 성형 계수 c (0 = 성형 없음, docs/02 결정 13)")
+    ap.add_argument("--obs-memory", type=int, default=1,
+                    help="관측 기억 채널 (1 = 사용, 0 = 결정 15 이전 8채널 관측)")
     ap.add_argument("--out-root", default=os.path.join("results", "rl", "runs"))
     ap.add_argument("--init-model", default=None,
                     help="이어서 학습할 모델(.zip). 하이퍼파라미터는 저장된 값을 쓰고, --timesteps 는 '추가' 스텝 수")
@@ -135,7 +137,8 @@ def main():
         env_seed += 7_919        # 이어서 학습할 때 처음 학습과 같은 판 순서를 반복하지 않도록
     vec_cls = SubprocVecEnv if args.n_envs > 1 else DummyVecEnv
     venv = make_vec_env(PursuitGymEnv, n_envs=args.n_envs, seed=env_seed, vec_env_cls=vec_cls,
-                        env_kwargs={"k": k, "cfg": cfg, "shaping_coef": args.shaping_coef, "gamma": args.gamma},
+                        env_kwargs={"k": k, "cfg": cfg, "shaping_coef": args.shaping_coef, "gamma": args.gamma,
+                                    "obs_memory": bool(args.obs_memory)},
                         monitor_dir=os.path.join(out, "monitor"),
                         monitor_kwargs={"info_keywords": ("win", "evader")})
 

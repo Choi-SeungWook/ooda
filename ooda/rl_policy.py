@@ -14,7 +14,7 @@ from torch import nn
 
 from .config import EnvConfig
 from .gridmap import GridMap
-from .obs import ObsBuilder
+from .obs import N_CHANNELS, ObsBuilder
 
 
 class GridCNN(BaseFeaturesExtractor):
@@ -47,6 +47,8 @@ class RLPursuer:
 
     def __init__(self, model, cfg: EnvConfig = EnvConfig(), deterministic: bool = True):
         self.model, self.cfg, self.deterministic = model, cfg, deterministic
+        # 모델이 학습한 관측 채널 수로 기억 채널 사용 여부를 정한다 (결정 15 이전 모델은 8채널)
+        self.memory = model.observation_space["grid"].shape[0] == N_CHANNELS
 
     @classmethod
     def load(cls, path: str, cfg: EnvConfig = EnvConfig(), device: str = "cpu", **kw):
@@ -54,7 +56,7 @@ class RLPursuer:
         return cls(PPO.load(path, device=device, custom_objects={"policy_kwargs": POLICY_KWARGS}), cfg, **kw)
 
     def reset(self, m: GridMap, rng: np.random.Generator) -> None:
-        self.builder = ObsBuilder(m, self.cfg)
+        self.builder = ObsBuilder(m, self.cfg, memory=self.memory)
 
     def act(self, obs) -> int:
         o = self.builder.update(obs)
